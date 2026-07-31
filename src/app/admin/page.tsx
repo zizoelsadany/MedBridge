@@ -57,6 +57,43 @@ export default function AdminPage() {
 
   // New Book Form State
   const [showAddBook, setShowAddBook] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'coverImage' | 'pdfUrl') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadProgress(10);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'medbridge_preset'); // USER MUST CREATE THIS IN CLOUDINARY
+    
+    try {
+      setUploadProgress(40);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/dvbpridc6/auto/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      setUploadProgress(80);
+      const data = await res.json();
+      
+      if (data.secure_url) {
+        setNewBook({ ...newBook, [field]: data.secure_url });
+      } else {
+        alert('Upload failed: ' + (data.error?.message || 'Unknown error. Ensure you created "medbridge_preset" as Unsigned.'));
+      }
+    } catch (err) {
+      alert('Upload error: ' + err);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   const [newBook, setNewBook] = useState({
     title: '',
     author: '',
@@ -92,36 +129,64 @@ export default function AdminPage() {
     }
   };
 
-  // Add Book
-  const handleAddBook = (e: React.FormEvent) => {
-    e.preventDefault();
-    const created: Book = {
-      ...newBook,
-      _id: `book-${Date.now()}`,
-      downloads: 0,
-      views: 1,
-      rating: 5.0,
-      ratingCount: 1,
-    };
-    setBooks([created, ...books]);
-    setShowAddBook(false);
-    setNewBook({
-      title: '',
-      author: '',
-      category: 'Anatomy',
-      description: '',
-      coverImage: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=600&q=80',
-      pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      pages: 350,
-      language: 'English',
-      year: 2024,
-      fileSize: '15 MB',
-    });
+  const emptyBook = {
+    title: '',
+    author: '',
+    category: 'Anatomy',
+    description: '',
+    coverImage: '',
+    pdfUrl: '',
+    pages: 350,
+    language: 'English',
+    year: 2024,
+    fileSize: '15 MB',
   };
 
-  // Delete Book
-  const handleDeleteBook = (id: string) => {
+  // Add Book — saves to MongoDB via API
+  const handleAddBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUploading(true);
+    try {
+      const res = await fetch('/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newBook,
+          downloads: 0,
+          views: 1,
+          rating: 5.0,
+          ratingCount: 1,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setBooks([data.data, ...books]);
+        setShowAddBook(false);
+        setNewBook(emptyBook);
+        alert('✅ تم حفظ الكتاب في قاعدة البيانات بنجاح!');
+      } else {
+        // Fallback: save locally if DB not connected
+        const created: Book = { ...newBook, _id: `book-${Date.now()}`, downloads: 0, views: 1, rating: 5.0, ratingCount: 1 };
+        setBooks([created, ...books]);
+        setShowAddBook(false);
+        setNewBook(emptyBook);
+        alert('⚠️ تم الحفظ محلياً فقط (قاعدة البيانات غير متصلة)');
+      }
+    } catch (err) {
+      alert('❌ خطأ في الاتصال بقاعدة البيانات: ' + err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Delete Book — removes from MongoDB via API
+  const handleDeleteBook = async (id: string) => {
     setBooks(books.filter(b => b._id !== id));
+    try {
+      await fetch(`/api/books/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Delete from DB failed:', err);
+    }
   };
 
   // Delete Article
@@ -343,14 +408,41 @@ export default function AdminPage() {
                 >
                   {initialCategories.map(c => <option key={c._id} value={c.nameEn}>{c.nameEn}</option>)}
                 </select>
-                <input
-                  type="text"
-                  placeholder="Cover Image URL (Cloudinary)"
-                  value={newBook.coverImage}
-                  onChange={(e) => setNewBook({ ...newBook, coverImage: e.target.value })}
-                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
-                  required
-                />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-500">Cover Image</label>
+                  {newBook.coverImage && newBook.coverImage.startsWith('http') ? (
+                    <div className="relative w-full h-10 bg-slate-100 rounded-xl overflow-hidden border">
+                      <img src={newBook.coverImage} alt="Cover" className="object-cover w-full h-full opacity-50" />
+                      <button type="button" onClick={() => setNewBook({...newBook, coverImage: ''})} className="absolute inset-0 flex items-center justify-center text-xs font-bold text-red-600 hover:bg-red-50/50">Remove</button>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'coverImage')}
+                      disabled={isUploading}
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-500">Book PDF File</label>
+                  {newBook.pdfUrl && newBook.pdfUrl !== 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' ? (
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-brand-50 rounded-xl border border-brand-100">
+                      <span className="text-xs font-bold text-brand-700 truncate mr-2">PDF Uploaded ✓</span>
+                      <button type="button" onClick={() => setNewBook({...newBook, pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'})} className="text-xs font-bold text-red-600 hover:underline">Clear</button>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => handleFileUpload(e, 'pdfUrl')}
+                      disabled={isUploading}
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyanBrand-50 file:text-cyanBrand-700 hover:file:bg-cyanBrand-100"
+                    />
+                  )}
+                </div>
               </div>
               <textarea
                 placeholder="Description"
@@ -360,7 +452,15 @@ export default function AdminPage() {
                 rows={2}
                 required
               />
-              <button type="submit" className="px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-xs">
+              
+              {isUploading && (
+                <div className="w-full bg-slate-200 rounded-full h-1.5 mb-4 dark:bg-slate-700">
+                  <div className="bg-brand-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                  <p className="text-[10px] text-slate-500 mt-1">Uploading file to cloud... please wait.</p>
+                </div>
+              )}
+
+              <button type="submit" disabled={isUploading} className={`px-6 py-2.5 rounded-xl text-white font-bold text-xs ${isUploading ? 'bg-slate-400' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
                 Save Book
               </button>
             </form>

@@ -88,9 +88,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setUserRatings(StorageManager.getRatedItems());
     setCommentsState(StorageManager.getComments());
 
-    // Load admin-managed books & articles
-    setGlobalBooksState(loadAdminBooks());
-    setGlobalArticlesState(loadAdminArticles());
+    // Try to load from MongoDB API first, fallback to localStorage
+    fetch('/api/books')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data && data.data.length > 0) {
+          setGlobalBooksState(data.data);
+        } else {
+          setGlobalBooksState(loadAdminBooks());
+        }
+      })
+      .catch(() => setGlobalBooksState(loadAdminBooks()));
+
+    fetch('/api/articles')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.data && data.data.length > 0) {
+          setGlobalArticlesState(data.data);
+        } else {
+          setGlobalArticlesState(loadAdminArticles());
+        }
+      })
+      .catch(() => setGlobalArticlesState(loadAdminArticles()));
 
     // Increment & track site visits
     const updatedVisits = StorageManager.incrementSiteVisits();

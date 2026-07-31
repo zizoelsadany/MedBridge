@@ -163,18 +163,6 @@
 .width-full { max-width: 100%; }
 
 /* --- GLOBAL READING SETTINGS OVERRIDES --- */
-/* Font Sizes */
-html.font-sm, html.font-sm body, html.font-sm p, html.font-sm span, html.font-sm div, html.font-sm a { font-size: 13px !important; }
-html.font-md, html.font-md body, html.font-md p, html.font-md span, html.font-md div, html.font-md a { font-size: 16px !important; }
-html.font-lg, html.font-lg body, html.font-lg p, html.font-lg span, html.font-lg div, html.font-lg a { font-size: 20px !important; }
-html.font-xl, html.font-xl body, html.font-xl p, html.font-xl span, html.font-xl div, html.font-xl a { font-size: 24px !important; }
-
-html.font-sm h1, html.font-sm h2, html.font-sm h3, html.font-sm h4 { font-size: 1.3rem !important; }
-html.font-md h1, html.font-md h2, html.font-md h3, html.font-md h4 { font-size: 1.5rem !important; }
-html.font-lg h1, html.font-lg h2, html.font-lg h3, html.font-lg h4 { font-size: 1.8rem !important; }
-html.font-xl h1, html.font-xl h2, html.font-xl h3, html.font-xl h4 { font-size: 2.3rem !important; }
-
-/* --- GLOBAL READING SETTINGS OVERRIDES --- */
 /* Scale the root font-size so REM units scale proportionally across the whole site without breaking layout */
 html.font-sm { font-size: 14px !important; }
 html.font-md { font-size: 16px !important; }
@@ -187,4 +175,6 @@ html.font-serif body { font-family: Georgia, Cambria, 'Times New Roman', Times, 
 html.font-mono body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; }
 
 /* Apply line height gracefully */
-html.l
+html.leading-tight body { line-height: 1.35 !important; }
+html.leading-normal body { line-height: 1.6 !important; }
+html.leading-relaxed body { line-height: 2.0 !important; }

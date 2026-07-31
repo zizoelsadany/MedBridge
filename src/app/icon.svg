@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Premium Rounded Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  
+  <!-- Book / Bridge Base -->
+  <path d="M256,136 C192,136 128,172 128,172 L128,396 C128,396 192,360 256,360 C320,360 384,396 384,396 L384,172 C384,172 320,136 256,136 Z" fill="#ffffff" shadow="0 10px 20px rgba(0,0,0,0.2)"/>
+  
+  <!-- Center Book Fold -->
+  <path d="M256,136 V360" stroke="url(#bgGrad)" stroke-width="16" stroke-linecap="round"/>
+  
+  <!-- Medical Plus / Cross -->
+  <rect x="232" y="196" width="48" height="128" rx="12" fill="url(#bgGrad)"/>
+  <rect x="192" y="236" width="128" height="48" rx="12" fill="url(#bgGrad)"/>
+</svg>

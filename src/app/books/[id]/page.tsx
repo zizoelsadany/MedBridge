@@ -26,14 +26,14 @@ import {
 
 export default function BookDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { t, language, favBookIds, toggleFavBook, userRatings, rateItem } = useApp();
+  const { t, language, favBookIds, toggleFavBook, userRatings, rateItem, globalBooks } = useApp();
   const [activeTab, setActiveTab] = useState<'overview' | 'comments' | 'details'>('overview');
 
-  const book = initialBooks.find(b => b._id === id) || initialBooks[0];
+  const book = globalBooks.find((b: any) => b._id === id) || initialBooks[0];
   const isFav = favBookIds.includes(book._id);
   const userRating = userRatings[book._id] || book.rating;
 
-  const relatedBooks = initialBooks.filter(b => b.category === book.category && b._id !== book._id).slice(0, 3);
+  const relatedBooks = globalBooks.filter((b: any) => b.category === book.category && b._id !== book._id).slice(0, 3);
 
   const ArrowBackIcon = language === 'ar' ? ArrowRight : ArrowLeft;
 

@@ -212,35 +212,7 @@ export function PdfReader({ book }: { book: Book }) {
             <span>{book.category} • {book.author}</span>
           </div>
 
-          {/* Core Page Content */}
-          <div className="my-8 space-y-6 leading-relaxed">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-current/10 text-[11px] font-extrabold tracking-wider uppercase">
-              {language === 'ar' ? `المكثّف الطبي - صفحة ${currentPage}` : `High-Yield Review - Page ${currentPage}`}
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
-              {language === 'ar' ? `الفصل ${currentPage}: دراسة سريرية متعمقة` : `Chapter ${currentPage}: Comprehensive Medical Review`}
-            </h1>
-
-            <p className="text-base sm:text-lg leading-relaxed opacity-95">
-              {language === 'ar'
-                ? `تعتبر هذه الصفحة من الكتاب المرجعي (${book.title}) مدخلاً سريرياً وتطبيقياً كبيراً لقضايا التخصص في قسم (${book.category}). تهدف الدراسة لتزويد الطالب والباحث الطبي بالمعطيات الأساسية، والتشخيص التفريقي، وأساليب الرعاية السريرية المتقدمة.`
-                : `This section from the gold-standard reference (${book.title}) delivers high-yield clinical insights for ${book.category}. Designed for medical students and practicing clinicians to master pathophysiology, diagnostic algorithms, and evidence-based therapeutics.`}
-            </p>
-
-            <div className="p-6 rounded-3xl bg-current/5 border border-current/15 space-y-4 my-6">
-              <h3 className="font-extrabold text-sm uppercase tracking-wider flex items-center gap-2 text-brand-600 dark:text-brand-400">
-                <Layers className="w-4 h-4" />
-                {language === 'ar' ? 'نقاط التقييم السريع واللؤلؤات السريرية (Clinical Pearls)' : 'High-Yield Clinical Pearls'}
-              </h3>
-              <ul className="list-disc list-inside space-y-2.5 text-sm sm:text-base opacity-90 leading-relaxed">
-                <li>{language === 'ar' ? 'الربط المباشر بين التركيب التشريحي والأعراض السريرية للمريض.' : 'Direct correlation between anatomical landmarks and patient presentation.'}</li>
-                <li>{language === 'ar' ? 'البروتوكولات الأحدث المعتمدة عالمياً للتشخيص المبكر والمعالجة.' : 'Updated international consensus guidelines for early intervention.'}</li>
-                <li>{language === 'ar' ? 'ملاحظات الأمان الدوائي والآثار الجانبية الحرجة.' : 'Critical pharmacotherapeutic safety margins and adverse drug reactions.'}</li>
-              </ul>
-            </div>
-
-            {/* Embedded Interactive PDF Viewer */}
+          {/* Embedded Interactive PDF Viewer */}
             <div className="mt-8 rounded-3xl overflow-hidden border border-current/20 h-[800px] shadow-lg bg-black/10">
               <iframe
                 src={`https://docs.google.com/viewer?url=${encodeURIComponent(book.pdfUrl)}&embedded=true`}

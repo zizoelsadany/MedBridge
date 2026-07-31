@@ -142,16 +142,28 @@ export function PdfReader({ book }: { book: Book }) {
             </button>
 
             {/* Download */}
-            <a
-              href={book.pdfUrl}
-              download
-              target="_blank"
-              rel="noreferrer"
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch(book.pdfUrl);
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${book.title || 'book'}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                } catch (e) {
+                  window.open(book.pdfUrl, '_blank');
+                }
+              }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs shadow-md transition-all"
             >
               <Download className="w-4 h-4" />
               <span className="hidden md:inline">{t('downloadPdf')}</span>
-            </a>
+            </button>
           </div>
         </div>
 

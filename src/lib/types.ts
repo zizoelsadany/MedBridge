@@ -97,6 +97,13 @@ export interface CommentItem {
   rating?: number;
 }
 
+export interface HomeSections {
+  featuredBookIds: string[];
+  latestBookIds: string[];
+  mostDownloadedBookIds: string[];
+  latestArticleIds: string[];
+}
+
 export interface Testimonial {
   _id: string;
   name: string;

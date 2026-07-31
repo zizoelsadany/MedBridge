@@ -83,7 +83,7 @@ function BooksContent() {
     }
 
     return result;
-  }, [selectedCategory, selectedLang, searchQuery, sortBy, showOnlyFavs, favBookIds]);
+  }, [selectedCategory, selectedLang, searchQuery, sortBy, showOnlyFavs, favBookIds, globalBooks]);
 
   const totalPages = Math.ceil(filteredBooks.length / itemsPerPage) || 1;
   const paginatedBooks = filteredBooks.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -140,6 +140,31 @@ function BooksContent() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Language Quick Filter Pills */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+          {language === 'ar' ? 'لغة الكتاب:' : 'Language:'}
+        </span>
+        {([
+          { value: 'all', labelAr: 'الكل', labelEn: 'All' },
+          { value: 'Arabic', labelAr: 'عربي فقط', labelEn: 'Arabic Only' },
+          { value: 'English', labelAr: 'English فقط', labelEn: 'English Only' },
+          { value: 'French', labelAr: 'Français', labelEn: 'French' },
+        ] as const).map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => { setSelectedLang(opt.value); setCurrentPage(1); }}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${
+              selectedLang === opt.value
+                ? 'bg-brand-600 text-white border-brand-600 shadow-md'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-brand-400'
+            }`}
+          >
+            {language === 'ar' ? opt.labelAr : opt.labelEn}
+          </button>
+        ))}
       </div>
 
       {/* Filter Toolbar */}

@@ -79,159 +79,121 @@ export function PdfReader({ book }: { book: Book }) {
 
   return (
     <div className={`fixed inset-0 z-50 flex flex-col ${getStageBg()} transition-colors duration-300 font-sans`}>
-      {/* Top Floating Pro Reader Toolbar */}
-      <header className={`px-4 sm:px-6 py-3 border-b backdrop-blur-md sticky top-0 z-50 flex items-center justify-between gap-4 shadow-md transition-colors ${getHeaderBg()}`}>
-        {/* Left: Back to Book & Title */}
-        <div className="flex items-center gap-3">
+      {/* ── Top Toolbar ─────────────────────────────────── */}
+      <header className={`px-3 sm:px-5 border-b backdrop-blur-md sticky top-0 z-50 shadow-md transition-colors ${getHeaderBg()}`}>
+
+        {/* ROW 1: Back | Title | Actions */}
+        <div className="flex items-center justify-between gap-2 py-2.5">
+          {/* Back button */}
           <Link
             href={`/books/${book._id}`}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-xs font-extrabold transition-all border border-current/10 shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/5 dark:bg-white/10 hover:bg-black/10 text-xs font-extrabold transition-all border border-current/10 shrink-0"
           >
             <ArrowBackIcon className="w-4 h-4 text-brand-500" />
             <span className="hidden sm:inline">{t('backToBooks')}</span>
           </Link>
 
-          <div className="hidden lg:block border-r dir-ltr:border-l border-current/10 pl-3 dir-ltr:pr-3">
-            <h2 className="text-xs font-extrabold line-clamp-1 max-w-xs">{book.title}</h2>
-            <p className="text-[11px] opacity-70 line-clamp-1">{book.author} • {book.category}</p>
-          </div>
-        </div>
-
-        {/* Center: Page Jump Navigation */}
-        <div className="flex items-center gap-2 bg-black/5 dark:bg-white/10 p-1.5 rounded-2xl border border-current/10">
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage <= 1}
-            className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/20 disabled:opacity-30 transition-all"
-            title={language === 'ar' ? 'الصفحة السابقة' : 'Previous Page'}
-          >
-            <PagePrevIcon className="w-4 h-4" />
-          </button>
-
-          <div className="flex items-center gap-1.5 text-xs font-extrabold px-2">
-            <span>{t('page')}</span>
-            <input
-              type="number"
-              min={1}
-              max={totalPages}
-              value={currentPage}
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (val >= 1 && val <= totalPages) setCurrentPage(val);
-              }}
-              className="w-14 text-center bg-black/10 dark:bg-black/40 border border-current/20 rounded-xl py-1 font-mono text-xs focus:outline-none focus:border-brand-500"
-            />
-            <span className="opacity-70">{t('of')} {totalPages}</span>
+          {/* Title — center, mobile */}
+          <div className="flex-1 min-w-0 px-2 hidden sm:block">
+            <h2 className="text-xs font-extrabold line-clamp-1">{book.title}</h2>
+            <p className="text-[10px] opacity-60 line-clamp-1">{book.author} • {book.category}</p>
           </div>
 
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage >= totalPages}
-            className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/20 disabled:opacity-30 transition-all"
-            title={language === 'ar' ? 'الصفحة التالية' : 'Next Page'}
-          >
-            <PageNextIcon className="w-4 h-4" />
-          </button>
-        </div>
+          {/* Right actions */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Theme switcher — always visible (compact) */}
+            <div className="flex items-center gap-0.5 bg-black/5 dark:bg-white/10 p-1 rounded-xl border border-current/10">
+              <button onClick={() => setReaderTheme('light')} className={`p-1.5 rounded-lg transition-all ${readerTheme === 'light' ? 'bg-white text-slate-900 shadow-sm' : 'opacity-50 hover:opacity-100'}`} title="Light">
+                <Sun className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => setReaderTheme('sepia')} className={`p-1.5 rounded-lg transition-all ${readerTheme === 'sepia' ? 'bg-[#FBF0D9] text-[#3D3223] shadow-sm' : 'opacity-50 hover:opacity-100'}`} title="Sepia">
+                <BookOpen className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => setReaderTheme('dark')} className={`p-1.5 rounded-lg transition-all ${readerTheme === 'dark' ? 'bg-slate-900 text-white shadow-sm' : 'opacity-50 hover:opacity-100'}`} title="Dark">
+                <Moon className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-        {/* Right: Theme, Zoom & Actions */}
-        <div className="flex items-center gap-2">
-          {/* Zoom Controls */}
-          <div className="hidden md:flex items-center gap-1 bg-black/5 dark:bg-white/10 p-1.5 rounded-2xl border border-current/10 text-xs">
-            <button
-              onClick={() => setZoom(z => Math.max(50, z - 15))}
-              className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/20 transition-all"
-              title="Zoom Out"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setZoom(100)}
-              className="px-2 font-mono font-bold hover:underline"
-              title="Reset Zoom"
-            >
-              {zoom}%
-            </button>
-            <button
-              onClick={() => setZoom(z => Math.min(200, z + 15))}
-              className="p-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/20 transition-all"
-              title="Zoom In"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Reader Theme Picker & Elderly Mode */}
-          <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 p-1 rounded-2xl border border-current/10">
-            <button
-              onClick={() => setReaderTheme('light')}
-              className={`p-1.5 rounded-xl transition-all ${readerTheme === 'light' ? 'bg-white text-slate-900 shadow-md scale-105' : 'opacity-60 hover:opacity-100'}`}
-              title="Light Theme"
-            >
-              <Sun className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setReaderTheme('sepia')}
-              className={`p-1.5 rounded-xl transition-all ${readerTheme === 'sepia' ? 'bg-[#FBF0D9] text-[#3D3223] shadow-md scale-105' : 'opacity-60 hover:opacity-100'}`}
-              title="Sepia Theme"
-            >
-              <BookOpen className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setReaderTheme('dark')}
-              className={`p-1.5 rounded-xl transition-all ${readerTheme === 'dark' ? 'bg-slate-950 text-white shadow-md scale-105' : 'opacity-60 hover:opacity-100'}`}
-              title="Dark Theme"
-            >
-              <Moon className="w-4 h-4" />
-            </button>
-
-            <div className="w-[1px] h-4 bg-current/20 mx-0.5" />
-
+            {/* Elderly mode */}
             <button
               onClick={() => updateReadingSettings({ elderlyMode: !readingSettings.elderlyMode })}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${
-                readingSettings.elderlyMode
-                  ? 'bg-amber-500 text-white shadow-md scale-105 ring-2 ring-amber-300'
-                  : 'opacity-70 hover:opacity-100'
-              }`}
-              title={language === 'ar' ? 'وضع كبار السن (خط كبير جداً)' : 'Elderly Mode (Extra Large Text)'}
+              className={`p-2 rounded-xl border transition-all ${readingSettings.elderlyMode ? 'bg-amber-500 border-amber-500 text-white shadow-md' : 'bg-black/5 dark:bg-white/10 border-current/10 opacity-70 hover:opacity-100'}`}
+              title={language === 'ar' ? 'وضع كبار السن' : 'Elderly Mode'}
             >
               <UserCheck className="w-4 h-4" />
-              <span className="hidden xl:inline">{language === 'ar' ? 'كبار السن' : 'Elderly'}</span>
+            </button>
+
+            {/* Fav */}
+            <button
+              onClick={() => toggleFavBook(book._id)}
+              className={`p-2 rounded-xl border transition-all ${isFav ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-black/5 dark:bg-white/10 border-current/10 hover:bg-black/10'}`}
+              title={t('addToFavorites')}
+            >
+              <Bookmark className="w-4 h-4 fill-current" />
+            </button>
+
+            {/* Fullscreen */}
+            <button
+              onClick={toggleFullscreen}
+              className="p-2 rounded-xl bg-black/5 dark:bg-white/10 border border-current/10 hover:bg-black/10 transition-all"
+              title={t('fullscreen')}
+            >
+              {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
+
+            {/* Download */}
+            <a
+              href={book.pdfUrl}
+              download
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs shadow-md transition-all"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden md:inline">{t('downloadPdf')}</span>
+            </a>
+          </div>
+        </div>
+
+        {/* ROW 2: Zoom | Page Navigation — full width on mobile */}
+        <div className="flex items-center justify-between gap-2 pb-2.5 border-t border-current/10 pt-2">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 p-1 rounded-xl border border-current/10 text-xs">
+            <button onClick={() => setZoom(z => Math.max(50, z - 15))} className="p-1.5 rounded-lg hover:bg-black/10 transition-all" title="Zoom Out">
+              <ZoomOut className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => setZoom(100)} className="px-2 font-mono font-bold text-xs hover:underline min-w-[36px] text-center" title="Reset">
+              {zoom}%
+            </button>
+            <button onClick={() => setZoom(z => Math.min(200, z + 15))} className="p-1.5 rounded-lg hover:bg-black/10 transition-all" title="Zoom In">
+              <ZoomIn className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Favorites Toggle */}
-          <button
-            onClick={() => toggleFavBook(book._id)}
-            className={`p-2 rounded-2xl border transition-all ${
-              isFav ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-black/5 dark:bg-white/10 border-current/10 hover:bg-black/10'
-            }`}
-            title={t('addToFavorites')}
-          >
-            <Bookmark className="w-4 h-4 fill-current" />
-          </button>
+          {/* Page Navigation — center */}
+          <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/10 px-2 py-1.5 rounded-xl border border-current/10">
+            <button onClick={handlePrevPage} disabled={currentPage <= 1} className="p-1.5 rounded-lg hover:bg-black/10 disabled:opacity-30 transition-all" title={language === 'ar' ? 'السابقة' : 'Prev'}>
+              <PagePrevIcon className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-1 text-xs font-extrabold">
+              <span className="opacity-60 text-[10px]">{t('page')}</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={currentPage}
+                onChange={(e) => { const v = parseInt(e.target.value); if (v >= 1 && v <= totalPages) setCurrentPage(v); }}
+                className="w-12 text-center bg-black/10 dark:bg-black/40 border border-current/20 rounded-lg py-0.5 font-mono text-xs focus:outline-none focus:border-brand-500"
+              />
+              <span className="opacity-50 text-[10px]">/ {totalPages}</span>
+            </div>
+            <button onClick={handleNextPage} disabled={currentPage >= totalPages} className="p-1.5 rounded-lg hover:bg-black/10 disabled:opacity-30 transition-all" title={language === 'ar' ? 'التالية' : 'Next'}>
+              <PageNextIcon className="w-4 h-4" />
+            </button>
+          </div>
 
-          {/* Fullscreen */}
-          <button
-            onClick={toggleFullscreen}
-            className="p-2 rounded-2xl bg-black/5 dark:bg-white/10 border border-current/10 hover:bg-black/10 transition-all"
-            title={t('fullscreen')}
-          >
-            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
-          </button>
-
-          {/* Download PDF */}
-          <a
-            href={book.pdfUrl}
-            download
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('downloadPdf')}</span>
-          </a>
+          {/* Spacer to balance layout */}
+          <div className="w-[80px]" />
         </div>
       </header>
 

@@ -22,10 +22,15 @@ import {
   TrendingUp,
   Download,
   Eye,
+  Home,
+  Star,
+  Sparkles,
+  Check,
+  X,
 } from 'lucide-react';
 
 export default function AdminPage() {
-  const { t, language, comments, deleteComment, siteVisits, globalBooks, setGlobalBooks, globalArticles, setGlobalArticles } = useApp();
+  const { t, language, comments, deleteComment, siteVisits, globalBooks, setGlobalBooks, globalArticles, setGlobalArticles, homeSections, setHomeSections } = useApp();
 
   // Remember Authentication state in LocalStorage (Safe for SSR Hydration)
   const [authenticated, setAuthenticated] = useState<boolean>(false);
@@ -41,7 +46,7 @@ export default function AdminPage() {
   }, []);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'books' | 'articles' | 'videos' | 'categories' | 'comments' | 'testimonials' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'books' | 'articles' | 'videos' | 'categories' | 'comments' | 'testimonials' | 'settings' | 'sections'>('overview');
 
   // Use global books & articles from AppContext (persistent)
   const books = globalBooks;
@@ -65,15 +70,15 @@ export default function AdminPage() {
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(15);
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'medbridge_preset'); // USER MUST CREATE THIS IN CLOUDINARY
+    formData.append('type', field === 'pdfUrl' ? 'pdf' : 'cover');
     
     try {
       setUploadProgress(40);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/dvbpridc6/auto/upload`, {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -81,13 +86,14 @@ export default function AdminPage() {
       setUploadProgress(80);
       const data = await res.json();
       
-      if (data.secure_url) {
-        setNewBook({ ...newBook, [field]: data.secure_url });
+      if (data.success && data.url) {
+        setNewBook(prev => ({ ...prev, [field]: data.url }));
+        setUploadProgress(100);
       } else {
-        alert('Upload failed: ' + (data.error?.message || 'Unknown error. Ensure you created "medbridge_preset" as Unsigned.'));
+        alert('فشل الرفع: ' + (data.error || 'حدث خطأ غير معروف'));
       }
     } catch (err) {
-      alert('Upload error: ' + err);
+      alert('خطأ في رفع الملف: ' + err);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -99,8 +105,8 @@ export default function AdminPage() {
     author: '',
     category: 'Anatomy',
     description: '',
-    coverImage: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?auto=format&fit=crop&w=600&q=80',
-    pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    coverImage: '',
+    pdfUrl: '',
     pages: 350,
     language: 'English',
     year: 2024,
@@ -145,6 +151,14 @@ export default function AdminPage() {
   // Add Book — saves to MongoDB via API
   const handleAddBook = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newBook.coverImage) {
+      alert('⚠️ يرجى رفع صورة الغلاف أولاً قبل الحفظ.');
+      return;
+    }
+    if (!newBook.pdfUrl) {
+      alert('⚠️ يرجى رفع ملف PDF الكتاب أولاً قبل الحفظ.');
+      return;
+    }
     setIsUploading(true);
     try {
       const res = await fetch('/api/books', {
@@ -265,6 +279,7 @@ export default function AdminPage() {
       <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
         {[
           { id: 'overview', label: 'Overview', icon: TrendingUp },
+          { id: 'sections', label: language === 'ar' ? 'الصفحة الرئيسية' : 'Home Sections', icon: Home },
           { id: 'books', label: `${t('navBooks')} (${books.length})`, icon: BookOpen },
           { id: 'articles', label: `${t('navArticles')} (${articles.length})`, icon: FileText },
           { id: 'videos', label: `${t('navVideos')} (${videos.length})`, icon: Video },
@@ -408,6 +423,53 @@ export default function AdminPage() {
                 >
                   {initialCategories.map(c => <option key={c._id} value={c.nameEn}>{c.nameEn}</option>)}
                 </select>
+
+                {/* Language Selector — prominent pill buttons */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    {language === 'ar' ? '🌍 لغة الكتاب' : '🌍 Book Language'}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'Arabic', labelAr: 'عربي 🇸🇦', labelEn: 'Arabic 🇸🇦' },
+                      { value: 'English', labelAr: 'English 🇺🇸', labelEn: 'English 🇺🇸' },
+                      { value: 'French', labelAr: 'Français 🇫🇷', labelEn: 'French 🇫🇷' },
+                      { value: 'German', labelAr: 'Deutsch 🇩🇪', labelEn: 'German 🇩🇪' },
+                    ].map(lang => (
+                      <button
+                        key={lang.value}
+                        type="button"
+                        onClick={() => setNewBook({ ...newBook, language: lang.value })}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                          newBook.language === lang.value
+                            ? 'bg-brand-600 text-white border-brand-600 shadow-md scale-105'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-brand-400'
+                        }`}
+                      >
+                        {language === 'ar' ? lang.labelAr : lang.labelEn}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Year & Pages */}
+                <input
+                  type="number"
+                  placeholder={language === 'ar' ? 'سنة الإصدار (مثال: 2024)' : 'Publication Year (e.g. 2024)'}
+                  value={newBook.year}
+                  onChange={(e) => setNewBook({ ...newBook, year: parseInt(e.target.value) || 2024 })}
+                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                  min={1900} max={2030}
+                />
+                <input
+                  type="number"
+                  placeholder={language === 'ar' ? 'عدد الصفحات' : 'Number of Pages'}
+                  value={newBook.pages}
+                  onChange={(e) => setNewBook({ ...newBook, pages: parseInt(e.target.value) || 1 })}
+                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                  min={1}
+                />
+
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-500">Cover Image</label>
                   {newBook.coverImage && newBook.coverImage.startsWith('http') ? (
@@ -428,10 +490,10 @@ export default function AdminPage() {
 
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-500">Book PDF File</label>
-                  {newBook.pdfUrl && newBook.pdfUrl !== 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' ? (
+                  {newBook.pdfUrl ? (
                     <div className="flex items-center justify-between px-4 py-2.5 bg-brand-50 rounded-xl border border-brand-100">
                       <span className="text-xs font-bold text-brand-700 truncate mr-2">PDF Uploaded ✓</span>
-                      <button type="button" onClick={() => setNewBook({...newBook, pdfUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'})} className="text-xs font-bold text-red-600 hover:underline">Clear</button>
+                      <button type="button" onClick={() => setNewBook({...newBook, pdfUrl: ''})} className="text-xs font-bold text-red-600 hover:underline">Clear</button>
                     </div>
                   ) : (
                     <input
@@ -610,6 +672,161 @@ export default function AdminPage() {
           )) : (
             <p className="text-xs text-slate-400">{language === 'ar' ? 'لا توجد تعليقات حتى الآن.' : 'No comments yet.'}</p>
           )}
+        </div>
+      )}
+
+      {/* Tab: Home Sections Manager */}
+      {activeTab === 'sections' && (
+        <div className="space-y-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 rounded-2xl bg-brand-100 dark:bg-brand-950 text-brand-600">
+              <Home className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                {language === 'ar' ? 'إدارة أقسام الصفحة الرئيسية' : 'Home Page Sections Manager'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {language === 'ar'
+                  ? 'تحديد الكتب والمقالات التي تظهر في الصفحة الرئيسية — لو تركتها فارغة ستظهر أفضل الكتب تلقائياً'
+                  : 'Choose which books appear in each homepage section. If left empty, defaults to auto-sorted best books.'}
+              </p>
+            </div>
+          </div>
+
+          {([
+            {
+              key: 'featuredBookIds' as const,
+              label: language === 'ar' ? '⭐ الكتب المميزة' : '⭐ Featured Books',
+              icon: Star,
+              color: 'amber',
+              isBook: true,
+            },
+            {
+              key: 'latestBookIds' as const,
+              label: language === 'ar' ? '✨ أحدث الإضافات' : '✨ Latest Additions',
+              icon: Sparkles,
+              color: 'brand',
+              isBook: true,
+            },
+            {
+              key: 'mostDownloadedBookIds' as const,
+              label: language === 'ar' ? '⬇️ الأكثر تحميلاً' : '⬇️ Most Downloaded',
+              icon: Download,
+              color: 'emerald',
+              isBook: true,
+            },
+            {
+              key: 'latestArticleIds' as const,
+              label: language === 'ar' ? '📋 أحدث المقالات السريرية' : '📋 Latest Clinical Articles',
+              icon: FileText,
+              color: 'cyan',
+              isBook: false,
+            },
+          ] as Array<{ key: 'featuredBookIds' | 'latestBookIds' | 'mostDownloadedBookIds' | 'latestArticleIds'; label: string; icon: any; color: string; isBook: boolean }>).map(({ key, label, icon: Icon, color, isBook }) => {
+            const selectedIds: string[] = homeSections[key];
+            const items = isBook ? books : articles;
+
+            const toggleItem = (id: string) => {
+              const current = homeSections[key];
+              const updated = current.includes(id)
+                ? current.filter((i: string) => i !== id)
+                : [...current, id];
+              setHomeSections({ ...homeSections, [key]: updated });
+            };
+
+            const clearSection = () => {
+              setHomeSections({ ...homeSections, [key]: [] });
+            };
+
+            return (
+              <div key={key} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-5 h-5 text-brand-500" />
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">{label}</h4>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      selectedIds.length > 0
+                        ? 'bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                    }`}>
+                      {selectedIds.length > 0
+                        ? `${selectedIds.length} ${language === 'ar' ? 'مختار' : 'selected'}`
+                        : (language === 'ar' ? 'تلقائي' : 'Auto')}
+                    </span>
+                  </div>
+                  {selectedIds.length > 0 && (
+                    <button
+                      onClick={clearSection}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      {language === 'ar' ? 'مسح التحديد' : 'Clear'}
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-1">
+                  {items.map((item: any) => {
+                    const isSelected = selectedIds.includes(item._id);
+                    return (
+                      <button
+                        key={item._id}
+                        onClick={() => toggleItem(item._id)}
+                        className={`flex items-center gap-3 p-3 rounded-2xl border text-right transition-all ${
+                          isSelected
+                            ? 'bg-brand-50 dark:bg-brand-950/40 border-brand-400 dark:border-brand-600 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                        }`}
+                      >
+                        {isBook && (item as Book).coverImage && (
+                          <img
+                            src={(item as Book).coverImage}
+                            alt=""
+                            className="w-10 h-12 object-cover rounded-xl shrink-0"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0 text-right">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-tight">
+                            {item.title}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                            {isBook ? `${(item as Book).language} • ${(item as Book).category}` : `${(item as Article).category} • ${(item as Article).readTimeMinutes} min`}
+                          </p>
+                        </div>
+                        <div className={`shrink-0 w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-brand-600 border-brand-600'
+                            : 'border-slate-300 dark:border-slate-600'
+                        }`}>
+                          {isSelected && <Check className="w-3 h-3 text-white" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedIds.length > 0 && (
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <p className="text-[10px] font-bold text-slate-400 mb-2">
+                      {language === 'ar' ? 'معاينة الترتيب المختار' : 'Selected order preview:'}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedIds.map((id: string, idx: number) => {
+                        const item = items.find((b: any) => b._id === id);
+                        return item ? (
+                          <span key={id} className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-brand-100 dark:bg-brand-950/50 text-brand-700 dark:text-brand-300 text-[10px] font-bold">
+                            <span className="w-4 h-4 rounded-full bg-brand-600 text-white text-[9px] flex items-center justify-center font-mono">{idx + 1}</span>
+                            {(item as any).title.slice(0, 20)}{(item as any).title.length > 20 ? '...' : ''}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

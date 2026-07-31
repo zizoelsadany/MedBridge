@@ -25,15 +25,27 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
-  const { t, language, setQuickSearchOpen } = useApp();
+  const { t, language, setQuickSearchOpen, globalBooks, globalArticles, homeSections } = useApp();
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
 
   const ArrowIcon = language === 'ar' ? ArrowLeft : ArrowRight;
 
-  const featuredBooks = initialBooks.filter(b => b.isFeatured);
-  const latestBooks = [...initialBooks].sort((a, b) => b.year - a.year).slice(0, 4);
-  const mostDownloaded = [...initialBooks].sort((a, b) => b.downloads - a.downloads).slice(0, 4);
-  const highestRated = [...initialBooks].sort((a, b) => b.rating - a.rating).slice(0, 4);
+  // Use admin-curated selections, fallback to automatic sorting if empty
+  const featuredBooks = homeSections.featuredBookIds.length > 0
+    ? globalBooks.filter(b => homeSections.featuredBookIds.includes(b._id))
+    : globalBooks.filter(b => b.isFeatured).slice(0, 4);
+
+  const latestBooks = homeSections.latestBookIds.length > 0
+    ? globalBooks.filter(b => homeSections.latestBookIds.includes(b._id))
+    : [...globalBooks].sort((a, b) => b.year - a.year).slice(0, 4);
+
+  const mostDownloaded = homeSections.mostDownloadedBookIds.length > 0
+    ? globalBooks.filter(b => homeSections.mostDownloadedBookIds.includes(b._id))
+    : [...globalBooks].sort((a, b) => b.downloads - a.downloads).slice(0, 4);
+
+  const latestArticles = homeSections.latestArticleIds.length > 0
+    ? globalArticles.filter(a => homeSections.latestArticleIds.includes(a._id))
+    : globalArticles.slice(0, 3);
 
   const stats = [
     { number: '5,000+', label: t('statsBooks'), icon: BookOpen },
@@ -257,7 +269,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {initialArticles.map((art) => (
+          {latestArticles.map((art) => (
             <ArticleCard key={art._id} article={art} />
           ))}
         </div>

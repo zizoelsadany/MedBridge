@@ -1,13 +1,23 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Language, ThemeMode, ReadingSettings, CommentItem, Book, Article } from '@/lib/types';
+import { Language, ThemeMode, ReadingSettings, CommentItem, Book, Article, HomeSections } from '@/lib/types';
 import { StorageManager } from '@/lib/storage';
 import { translations } from '@/lib/translations';
 import { initialBooks, initialArticles } from '@/lib/mockData';
 
 const BOOKS_KEY = 'medbridge_admin_books';
 const ARTICLES_KEY = 'medbridge_admin_articles';
+const HOME_SECTIONS_KEY = 'medbridge_home_sections';
+
+function loadHomeSections(): HomeSections {
+  if (typeof window === 'undefined') return { featuredBookIds: [], latestBookIds: [], mostDownloadedBookIds: [], latestArticleIds: [] };
+  try {
+    const stored = localStorage.getItem(HOME_SECTIONS_KEY);
+    if (!stored) return { featuredBookIds: [], latestBookIds: [], mostDownloadedBookIds: [], latestArticleIds: [] };
+    return JSON.parse(stored) as HomeSections;
+  } catch { return { featuredBookIds: [], latestBookIds: [], mostDownloadedBookIds: [], latestArticleIds: [] }; }
+}
 
 function loadAdminBooks(): Book[] {
   if (typeof window === 'undefined') return initialBooks;
@@ -53,6 +63,9 @@ interface AppContextType {
   setGlobalBooks: (books: Book[]) => void;
   globalArticles: Article[];
   setGlobalArticles: (articles: Article[]) => void;
+  // Home page sections (admin-curated)
+  homeSections: HomeSections;
+  setHomeSections: (sections: HomeSections) => void;
   t: (key: keyof typeof translations['en']) => string;
 }
 
@@ -77,6 +90,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [siteVisits, setSiteVisits] = useState(1);
   const [globalBooks, setGlobalBooksState] = useState<Book[]>(initialBooks);
   const [globalArticles, setGlobalArticlesState] = useState<Article[]>(initialArticles);
+  const [homeSections, setHomeSectionsState] = useState<HomeSections>({ featuredBookIds: [], latestBookIds: [], mostDownloadedBookIds: [], latestArticleIds: [] });
 
   // Initialize from LocalStorage
   useEffect(() => {
@@ -99,6 +113,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
       })
       .catch(() => setGlobalBooksState(loadAdminBooks()));
+
+    // Load home sections from localStorage
+    setHomeSectionsState(loadHomeSections());
 
     fetch('/api/articles')
       .then(r => r.json())
@@ -212,6 +229,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setHomeSections = (sections: HomeSections) => {
+    setHomeSectionsState(sections);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(HOME_SECTIONS_KEY, JSON.stringify(sections));
+    }
+  };
+
   const t = (key: keyof typeof translations['en']): string => {
     const dict = translations[language] || translations['en'];
     return dict[key] || translations['en'][key] || key;
@@ -244,6 +268,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setGlobalBooks,
         globalArticles,
         setGlobalArticles,
+        homeSections,
+        setHomeSections,
         t,
       }}
     >

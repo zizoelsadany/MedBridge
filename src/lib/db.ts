@@ -47,5 +47,5 @@ export async function connectToDatabase() {
     return null;
   }
 
-  return cached.conn;
+  return cached!.conn;
 }

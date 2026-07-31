@@ -70,33 +70,81 @@ export default function AdminPage() {
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(15);
+    setUploadProgress(2);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', field === 'pdfUrl' ? 'pdf' : 'cover');
-    
     try {
-      setUploadProgress(40);
-      const res = await fetch('/api/upload', {
+      const type = field === 'pdfUrl' ? 'pdf' : 'cover';
+
+      // Step 1: Get a signed upload signature from our backend (no file sent to server)
+      const sigRes = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type }),
       });
-      
-      setUploadProgress(80);
-      const data = await res.json();
-      
-      if (data.success && data.url) {
-        setNewBook(prev => ({ ...prev, [field]: data.url }));
+      const sigData = await sigRes.json();
+      if (!sigRes.ok || sigData.error) {
+        alert('فشل الرفع: ' + (sigData.error || 'لم يمكن الحصول على بيانات الرفع'));
+        return;
+      }
+
+      const { signature, timestamp, apiKey, cloudName, folder, resourceType } = sigData;
+
+      // Step 2: Upload directly from browser to Cloudinary in 5MB chunks
+      const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
+      const uniqueUploadId = `mid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+      let start = 0;
+      let secureUrl = '';
+
+      while (start < file.size) {
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+
+        const chunkForm = new FormData();
+        chunkForm.append('file', chunk);
+        chunkForm.append('api_key', apiKey);
+        chunkForm.append('timestamp', timestamp.toString());
+        chunkForm.append('signature', signature);
+        chunkForm.append('folder', folder);
+
+        const chunkRes = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'X-Unique-Upload-Id': uniqueUploadId,
+            'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+          },
+          body: chunkForm,
+        });
+
+        // Update real progress
+        const progress = Math.round((end / file.size) * 95);
+        setUploadProgress(progress);
+
+        // Last chunk returns the final Cloudinary response
+        if (end === file.size) {
+          const result = await chunkRes.json();
+          if (result.error) {
+            alert('فشل الرفع على Cloudinary: ' + result.error.message);
+            return;
+          }
+          secureUrl = result.secure_url;
+        }
+
+        start = end;
+      }
+
+      if (secureUrl) {
+        setNewBook(prev => ({ ...prev, [field]: secureUrl }));
         setUploadProgress(100);
-      } else {
-        alert('فشل الرفع: ' + (data.error || 'حدث خطأ غير معروف'));
       }
     } catch (err) {
       alert('خطأ في رفع الملف: ' + err);
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 800);
     }
   };
 
@@ -516,9 +564,24 @@ export default function AdminPage() {
               />
               
               {isUploading && (
-                <div className="w-full bg-slate-200 rounded-full h-1.5 mb-4 dark:bg-slate-700">
-                  <div className="bg-brand-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
-                  <p className="text-[10px] text-slate-500 mt-1">Uploading file to cloud... please wait.</p>
+                <div className="w-full space-y-2 mb-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-slate-500">
+                      {uploadProgress < 100
+                        ? `⬆️ جاري الرفع... ${uploadProgress}%`
+                        : '✅ اكتمل الرفع!'}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-brand-500 to-cyanBrand-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    يتم الرفع مباشرةً إلى Cloudinary بتقنية Chunked Upload — يدعم ملفات حتى 2 جيجابايت
+                  </p>
                 </div>
               )}
 

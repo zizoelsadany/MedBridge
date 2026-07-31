@@ -241,11 +241,11 @@ export function PdfReader({ book }: { book: Book }) {
             </div>
 
             {/* Embedded Interactive PDF Viewer */}
-            <div className="mt-8 rounded-3xl overflow-hidden border border-current/20 h-[500px] shadow-lg bg-black/10">
+            <div className="mt-8 rounded-3xl overflow-hidden border border-current/20 h-[800px] shadow-lg bg-black/10">
               <iframe
-                src={`${book.pdfUrl}#page=${currentPage}`}
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(book.pdfUrl)}&embedded=true`}
                 title="PDF Document View"
-                className="w-full h-full border-none"
+                className="w-full h-full border-none bg-white"
               />
             </div>
           </div>

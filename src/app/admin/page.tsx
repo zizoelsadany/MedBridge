@@ -102,7 +102,7 @@ export default function AdminPage() {
         const chunk = file.slice(start, end);
 
         const chunkForm = new FormData();
-        chunkForm.append('file', chunk);
+        chunkForm.append('file', chunk, file.name);
         chunkForm.append('api_key', apiKey);
         chunkForm.append('timestamp', timestamp.toString());
         chunkForm.append('signature', signature);
@@ -204,7 +204,7 @@ export default function AdminPage() {
       return;
     }
     if (!newBook.pdfUrl) {
-      alert('⚠️ يرجى رفع ملف PDF الكتاب أولاً قبل الحفظ.');
+      alert('⚠️ يرجى إرفاق رابط PDF الكتاب أولاً قبل الحفظ.');
       return;
     }
     setIsUploading(true);
@@ -239,6 +239,38 @@ export default function AdminPage() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const [showAddArticle, setShowAddArticle] = useState(false);
+  const emptyArticle = {
+    title: '',
+    author: '',
+    category: 'Anatomy',
+    summary: '',
+    content: '',
+    coverImage: '',
+    readTimeMinutes: 5,
+  };
+  const [newArticle, setNewArticle] = useState(emptyArticle);
+
+  const handleAddArticle = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newArticle.coverImage) {
+      alert('⚠️ يرجى إرفاق رابط صورة للمقال.');
+      return;
+    }
+    const created: Article = {
+      ...newArticle,
+      _id: `article-${Date.now()}`,
+      views: 1,
+      rating: 5.0,
+      ratingCount: 1,
+      createdAt: new Date().toISOString(),
+    };
+    setArticles([created, ...articles]);
+    setShowAddArticle(false);
+    setNewArticle(emptyArticle);
+    alert('✅ تم إضافة المقال بنجاح!');
   };
 
   // Delete Book — removes from MongoDB via API
@@ -634,13 +666,80 @@ export default function AdminPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('navArticles')}</h3>
             <button
-              onClick={() => alert(language === 'ar' ? 'يمكنك إضافة المقالات عبر ربط MongoDB Atlas أو رفع مقال جديد.' : 'Add Article')}
+              onClick={() => setShowAddArticle(!showAddArticle)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-cyanBrand-600 text-white font-bold text-xs shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>{language === 'ar' ? 'إضافة مقال سريري جديد' : 'Add New Article'}</span>
             </button>
           </div>
+
+          {/* Add Article Form Modal */}
+          {showAddArticle && (
+            <form onSubmit={handleAddArticle} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <h4 className="font-bold text-sm text-cyanBrand-600">{language === 'ar' ? 'إضافة مقال جديد' : 'Add Article'}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder={language === 'ar' ? 'عنوان المقال' : 'Article Title'}
+                  value={newArticle.title}
+                  onChange={(e) => setNewArticle({ ...newArticle, title: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder={language === 'ar' ? 'الكاتب' : 'Author'}
+                  value={newArticle.author}
+                  onChange={(e) => setNewArticle({ ...newArticle, author: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                  required
+                />
+                <select
+                  value={newArticle.category}
+                  onChange={(e) => setNewArticle({ ...newArticle, category: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                >
+                  {initialCategories.map(c => <option key={c._id} value={c.nameEn}>{c.nameEn}</option>)}
+                </select>
+                <input
+                  type="number"
+                  placeholder={language === 'ar' ? 'وقت القراءة (بالدقائق)' : 'Read Time (Minutes)'}
+                  value={newArticle.readTimeMinutes}
+                  onChange={(e) => setNewArticle({ ...newArticle, readTimeMinutes: parseInt(e.target.value) || 5 })}
+                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                  min={1}
+                />
+                <input
+                  type="url"
+                  placeholder={language === 'ar' ? 'رابط صورة الغلاف (مباشر)' : 'Cover Image URL'}
+                  value={newArticle.coverImage}
+                  onChange={(e) => setNewArticle({ ...newArticle, coverImage: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium col-span-1 md:col-span-2"
+                  required
+                />
+                <textarea
+                  placeholder={language === 'ar' ? 'ملخص المقال' : 'Summary'}
+                  value={newArticle.summary}
+                  onChange={(e) => setNewArticle({ ...newArticle, summary: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium col-span-1 md:col-span-2"
+                  rows={2}
+                  required
+                />
+                <textarea
+                  placeholder={language === 'ar' ? 'محتوى المقال (يدعم HTML)' : 'Content (HTML supported)'}
+                  value={newArticle.content}
+                  onChange={(e) => setNewArticle({ ...newArticle, content: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium col-span-1 md:col-span-2"
+                  rows={6}
+                  required
+                />
+              </div>
+              <button type="submit" className="px-6 py-2.5 rounded-xl text-white font-bold text-xs bg-cyanBrand-600 hover:bg-cyanBrand-700">
+                {language === 'ar' ? 'حفظ المقال' : 'Save Article'}
+              </button>
+            </form>
+          )}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
             <table className="w-full text-right text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 font-bold border-b border-slate-200 dark:border-slate-700">

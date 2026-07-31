@@ -25,3 +25,11 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Large files — PDFs and ZIPs should be stored on Cloudinary/cloud, not in git
+*.pdf
+*.zip
+*.rar
+*.7z
+*.mp4
+*.mkv

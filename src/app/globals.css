@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #f8fafc;
+    --bg-surface: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --border-color: #e2e8f0;
+    --accent-blue: #2563eb;
+    --accent-cyan: #06b6d4;
+    --accent-emerald: #10b981;
+  }
+
+  /* Dark Theme */
+  html.dark {
+    --bg-primary: #0a0f1a;
+    --bg-surface: #0f172a;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border-color: #1e293b;
+    color-scheme: dark;
+  }
+
+  /* Sepia Theme */
+  html.theme-sepia {
+    --bg-primary: #f0e8d0;
+    --bg-surface: #faf3e0;
+    --text-primary: #3d2b1f;
+    --text-secondary: #6e5040;
+    --border-color: #d9c9ab;
+  }
+
+  /* High Contrast Theme */
+  html.theme-high-contrast {
+    --bg-primary: #000000;
+    --bg-surface: #0a0a0a;
+    --text-primary: #ffff00;
+    --text-secondary: #ffffff;
+    --border-color: #ffff00;
+    --accent-blue: #00ffff;
+  }
+
+
+  /* Elderly Accessibility Mode - Large readable text and high contrast */
+  html.elderly-mode {
+    font-size: 20px;
+    letter-spacing: 0.02em;
+  }
+
+  html.elderly-mode body {
+    line-height: 1.9;
+  }
+
+  html.elderly-mode p,
+  html.elderly-mode li,
+  html.elderly-mode span {
+    font-size: 1.15rem;
+    line-height: 1.9;
+  }
+
+  html.elderly-mode h1 { font-size: 2.4rem !important; }
+  html.elderly-mode h2 { font-size: 2rem !important; }
+  html.elderly-mode h3 { font-size: 1.6rem !important; }
+
+  html.elderly-mode button,
+  html.elderly-mode a,
+  html.elderly-mode [role="button"] {
+    min-height: 52px !important;
+    min-width: 52px !important;
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    border-radius: 1rem !important;
+  }
+
+  html.elderly-mode input,
+  html.elderly-mode select,
+  html.elderly-mode textarea {
+    font-size: 1.05rem !important;
+    min-height: 52px !important;
+    padding: 0.75rem 1.25rem !important;
+    border-width: 2px !important;
+  }
+
+  html.elderly-mode .text-xs { font-size: 0.9rem !important; }
+  html.elderly-mode .text-sm { font-size: 1rem !important; }
+  html.elderly-mode .text-base { font-size: 1.15rem !important; }
+  html.elderly-mode .text-lg { font-size: 1.35rem !important; }
+  html.elderly-mode .text-xl { font-size: 1.5rem !important; }
+  html.elderly-mode .text-2xl { font-size: 1.75rem !important; }
+  html.elderly-mode .text-3xl { font-size: 2.1rem !important; }
+
+  html.elderly-mode .rounded-2xl,
+  html.elderly-mode .rounded-3xl {
+    border-radius: 1.25rem !important;
+  }
+
+  /* Thick visible borders in elderly mode */
+  html.elderly-mode .border { border-width: 2px !important; }
+  html.elderly-mode .border-b { border-bottom-width: 2px !important; }
+  html.elderly-mode .border-t { border-top-width: 2px !important; }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+    overflow-x: hidden;
+  }
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .glass-panel {
+  background: rgba(17, 24, 39, 0.75);
+  border-color: rgba(31, 41, 55, 0.8);
+}
+
+.theme-sepia .glass-panel {
+  background: rgba(251, 240, 217, 0.85);
+  border-color: rgba(226, 211, 184, 0.8);
+}
+
+.theme-high-contrast .glass-panel {
+  background: #000000;
+  border: 2px solid #ffff00;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+
+.theme-sepia ::-webkit-scrollbar-thumb {
+  background: #d4c5ab;
+}
+
+.width-narrow { max-width: 650px; }
+.width-medium { max-width: 800px; }
+.width-wide { max-width: 1000px; }
+.width-full { max-width: 100%; }
+
+/* --- GLOBAL READING SETTINGS OVERRIDES --- */
+/* Font Sizes */
+html.font-sm, html.font-sm body, html.font-sm p, html.font-sm span, html.font-sm div, html.font-sm a { font-size: 13px !important; }
+html.font-md, html.font-md body, html.font-md p, html.font-md span, html.font-md div, html.font-md a { font-size: 16px !important; }
+html.font-lg, html.font-lg body, html.font-lg p, html.font-lg span, html.font-lg div, html.font-lg a { font-size: 20px !important; }
+html.font-xl, html.font-xl body, html.font-xl p, html.font-xl span, html.font-xl div, html.font-xl a { font-size: 24px !important; }
+
+html.font-sm h1, html.font-sm h2, html.font-sm h3, html.font-sm h4 { font-size: 1.3rem !important; }
+html.font-md h1, html.font-md h2, html.font-md h3, html.font-md h4 { font-size: 1.5rem !important; }
+html.font-lg h1, html.font-lg h2, html.font-lg h3, html.font-lg h4 { font-size: 1.8rem !important; }
+html.font-xl h1, html.font-xl h2, html.font-xl h3, html.font-xl h4 { font-size: 2.3rem !important; }
+
+/* --- GLOBAL READING SETTINGS OVERRIDES --- */
+/* Scale the root font-size so REM units scale proportionally across the whole site without breaking layout */
+html.font-sm { font-size: 14px !important; }
+html.font-md { font-size: 16px !important; }
+html.font-lg { font-size: 19px !important; }
+html.font-xl { font-size: 22px !important; }
+
+/* Apply font family to body so it inherits naturally without breaking icons */
+html.font-sans body { font-family: 'Inter', system-ui, -apple-system, sans-serif !important; }
+html.font-serif body { font-family: Georgia, Cambria, 'Times New Roman', Times, serif !important; }
+html.font-mono body { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; }
+
+/* Apply line height gracefully */
+html.l

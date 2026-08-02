@@ -122,7 +122,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
             <a
-              href={`https://docs.google.com/viewer?url=${encodeURIComponent(book.pdfUrl)}`}
+              href={book.pdfUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs shadow-lg hover:shadow-xl transition-all"
@@ -131,28 +131,16 @@ export default function BookDetailPage({ params }: { params: Promise<{ id: strin
               <span>{t('readOnline')}</span>
             </a>
 
-            <button
-              onClick={async () => {
-                try {
-                  const res = await fetch(book.pdfUrl);
-                  const blob = await res.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `${book.title || 'book'}.pdf`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  window.URL.revokeObjectURL(url);
-                } catch (e) {
-                  window.open(book.pdfUrl, '_blank');
-                }
-              }}
+            <a
+              href={book.pdfUrl}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-xs transition-all"
             >
               <Download className="w-5 h-5" />
               <span>{t('downloadPdf')}</span>
-            </button>
+            </a>
 
             <button
               onClick={() => toggleFavBook(book._id)}

@@ -1,18 +1,13 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
-const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME!;
-const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY!;
-const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET!;
-
-/**
- * POST /api/upload
- * Returns a signed upload signature for direct browser→Cloudinary chunked upload.
- * The file never passes through this server — avoiding all size limits.
- */
 export async function POST(request: Request) {
   try {
-    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+    if (!cloudName || !apiKey || !apiSecret) {
       return NextResponse.json({ error: 'Cloudinary credentials not configured' }, { status: 500 });
     }
 
@@ -25,14 +20,14 @@ export async function POST(request: Request) {
     const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;
     const signature = crypto
       .createHash('sha1')
-      .update(paramsToSign + CLOUDINARY_API_SECRET)
+      .update(paramsToSign + apiSecret)
       .digest('hex');
 
     return NextResponse.json({
       signature,
       timestamp,
-      apiKey: CLOUDINARY_API_KEY,
-      cloudName: CLOUDINARY_CLOUD_NAME,
+      apiKey: apiKey,
+      cloudName: cloudName,
       folder,
       resourceType,
     });

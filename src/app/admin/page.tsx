@@ -93,6 +93,10 @@ export default function AdminPage() {
       const uniqueUploadId = `mid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
 
+      // Generate a safe ascii filename to prevent corruption of Arabic characters (which turn into ? marks in URL)
+      const extension = file.name.split('.').pop() || '';
+      const safeFileName = `file_${Date.now()}.${extension}`;
+
       let start = 0;
       let secureUrl = '';
 
@@ -101,7 +105,7 @@ export default function AdminPage() {
         const chunk = file.slice(start, end);
 
         const chunkForm = new FormData();
-        chunkForm.append('file', chunk, file.name);
+        chunkForm.append('file', chunk, safeFileName);
         chunkForm.append('api_key', apiKey);
         chunkForm.append('timestamp', timestamp.toString());
         chunkForm.append('signature', signature);

@@ -65,7 +65,7 @@ export default function AdminPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'coverImage' | 'pdfUrl') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'cover' | 'video', onComplete: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -73,7 +73,6 @@ export default function AdminPage() {
     setUploadProgress(2);
 
     try {
-      const type = field === 'pdfUrl' ? 'pdf' : 'cover';
 
       // Step 1: Get a signed upload signature from our backend (no file sent to server)
       const sigRes = await fetch('/api/upload', {
@@ -135,7 +134,7 @@ export default function AdminPage() {
       }
 
       if (secureUrl) {
-        setNewBook(prev => ({ ...prev, [field]: secureUrl }));
+        onComplete(secureUrl);
         setUploadProgress(100);
       }
     } catch (err) {
@@ -252,6 +251,35 @@ export default function AdminPage() {
     readTimeMinutes: 5,
   };
   const [newArticle, setNewArticle] = useState(emptyArticle);
+
+  const [showAddVideo, setShowAddVideo] = useState(false);
+  const emptyVideo = {
+    title: '',
+    description: '',
+    thumbnail: '',
+    videoUrl: '',
+    duration: '10:00',
+    category: 'Surgery',
+  };
+  const [newVideo, setNewVideo] = useState(emptyVideo);
+
+  const handleAddVideo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVideo.videoUrl || !newVideo.thumbnail) {
+      alert('⚠️ يرجى إرفاق رابط الفيديو والصورة المصغرة.');
+      return;
+    }
+    const created: MedicalVideo = {
+      ...newVideo,
+      _id: `video-${Date.now()}`,
+      views: 1,
+      createdAt: new Date().toISOString(),
+    };
+    setVideos([created, ...videos]);
+    setShowAddVideo(false);
+    setNewVideo(emptyVideo);
+    alert('✅ تم إضافة الفيديو بنجاح!');
+  };
 
   const handleAddArticle = (e: React.FormEvent) => {
     e.preventDefault();
@@ -561,7 +589,7 @@ export default function AdminPage() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => handleFileUpload(e, 'coverImage')}
+                      onChange={(e) => handleFileUpload(e, 'cover', (url) => setNewBook({...newBook, coverImage: url}))}
                       disabled={isUploading}
                       className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
                     />
@@ -579,7 +607,7 @@ export default function AdminPage() {
                     <input
                       type="file"
                       accept="application/pdf"
-                      onChange={(e) => handleFileUpload(e, 'pdfUrl')}
+                      onChange={(e) => handleFileUpload(e, 'pdf', (url) => setNewBook({...newBook, pdfUrl: url}))}
                       disabled={isUploading}
                       className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyanBrand-50 file:text-cyanBrand-700 hover:file:bg-cyanBrand-100"
                     />
@@ -778,13 +806,81 @@ export default function AdminPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('navVideos')}</h3>
             <button
-              onClick={() => alert(language === 'ar' ? 'إضافة فيديو سريري جديد' : 'Add Video')}
+              onClick={() => setShowAddVideo(!showAddVideo)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-purple-600 text-white font-bold text-xs shadow-md"
             >
               <Plus className="w-4 h-4" />
               <span>{language === 'ar' ? 'إضافة فيديو جراحي' : 'Add Medical Video'}</span>
             </button>
           </div>
+
+          {/* Add Video Form Modal */}
+          {showAddVideo && (
+            <form onSubmit={handleAddVideo} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <h4 className="font-bold text-sm text-purple-600">{language === 'ar' ? 'إضافة فيديو جديد' : 'Add Video'}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input type="text" placeholder={language === 'ar' ? 'عنوان الفيديو' : 'Video Title'} value={newVideo.title} onChange={(e) => setNewVideo({ ...newVideo, title: e.target.value })} className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium" required />
+                <select value={newVideo.category} onChange={(e) => setNewVideo({ ...newVideo, category: e.target.value })} className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium">
+                  {initialCategories.map(c => <option key={c._id} value={c.nameEn}>{c.nameEn}</option>)}
+                </select>
+                <input type="text" placeholder={language === 'ar' ? 'المدة (مثال: 10:00)' : 'Duration (e.g. 10:00)'} value={newVideo.duration} onChange={(e) => setNewVideo({ ...newVideo, duration: e.target.value })} className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium" required />
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-500">Video File</label>
+                  {newVideo.videoUrl ? (
+                    <div className="flex items-center justify-between px-4 py-2.5 bg-purple-50 rounded-xl border border-purple-100">
+                      <span className="text-xs font-bold text-purple-700 truncate mr-2">Video Uploaded ✓</span>
+                      <button type="button" onClick={() => setNewVideo({...newVideo, videoUrl: ''})} className="text-xs font-bold text-red-600 hover:underline">Clear</button>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => handleFileUpload(e, 'video', (url) => setNewVideo({...newVideo, videoUrl: url}))}
+                      disabled={isUploading}
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1 col-span-1 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-500">Thumbnail Image</label>
+                  {newVideo.thumbnail ? (
+                    <div className="relative w-full h-24 bg-slate-100 rounded-xl overflow-hidden border">
+                      <img src={newVideo.thumbnail} alt="Thumbnail" className="object-cover w-full h-full opacity-50" />
+                      <button type="button" onClick={() => setNewVideo({...newVideo, thumbnail: ''})} className="absolute inset-0 flex items-center justify-center text-xs font-bold text-red-600 hover:bg-red-50/50">Remove</button>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'cover', (url) => setNewVideo({...newVideo, thumbnail: url}))}
+                      disabled={isUploading}
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+                    />
+                  )}
+                </div>
+
+                <textarea placeholder={language === 'ar' ? 'وصف الفيديو' : 'Description'} value={newVideo.description} onChange={(e) => setNewVideo({ ...newVideo, description: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium col-span-1 md:col-span-2" rows={3} required />
+              </div>
+              
+              {isUploading && (
+                <div className="w-full space-y-2 mb-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-slate-500">{uploadProgress < 100 ? `⬆️ جاري الرفع... ${uploadProgress}%` : '✅ اكتمل الرفع!'}</span>
+                    <span className="text-[10px] font-mono text-slate-400">{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                    <div className="bg-gradient-to-r from-brand-500 to-cyanBrand-500 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" disabled={isUploading} className={`px-6 py-2.5 rounded-xl text-white font-bold text-xs ${isUploading ? 'bg-slate-400' : 'bg-purple-600 hover:bg-purple-700'}`}>
+                {language === 'ar' ? 'حفظ الفيديو' : 'Save Video'}
+              </button>
+            </form>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {videos.map(v => (
               <div key={v._id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 space-y-3">

@@ -13,8 +13,15 @@ export async function POST(request: Request) {
 
     const { type } = await request.json();
 
-    const folder = type === 'pdf' ? 'medbridge/books/pdfs' : 'medbridge/books/covers';
-    const resourceType = type === 'pdf' ? 'raw' : 'image';
+    let folder = 'medbridge/books/covers';
+    let resourceType = 'image';
+    if (type === 'pdf') {
+      folder = 'medbridge/books/pdfs';
+      resourceType = 'raw';
+    } else if (type === 'video') {
+      folder = 'medbridge/videos';
+      resourceType = 'video';
+    }
 
     const timestamp = Math.round(Date.now() / 1000);
     const paramsToSign = `folder=${folder}&timestamp=${timestamp}`;

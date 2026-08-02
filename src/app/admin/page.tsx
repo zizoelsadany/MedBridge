@@ -278,6 +278,7 @@ export default function AdminPage() {
   const [newArticle, setNewArticle] = useState(emptyArticle);
 
   const [showAddVideo, setShowAddVideo] = useState(false);
+  const [videoSource, setVideoSource] = useState<'youtube' | 'upload'>('youtube');
   const emptyVideo = {
     title: '',
     description: '',
@@ -903,12 +904,52 @@ export default function AdminPage() {
                 </select>
                 <input type="text" placeholder={language === 'ar' ? 'المدة (مثال: 10:00)' : 'Duration (e.g. 10:00)'} value={newVideo.duration} onChange={(e) => setNewVideo({ ...newVideo, duration: e.target.value })} className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium" required />
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Video File</label>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-slate-500">
+                    {language === 'ar' ? '🎬 مصدر الفيديو' : '🎬 Video Source'}
+                  </label>
+                  {/* Toggle */}
+                  <div className="flex gap-2 mb-1">
+                    <button type="button"
+                      onClick={() => { setVideoSource('youtube'); setNewVideo({...newVideo, videoUrl: ''}); }}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        videoSource === 'youtube' ? 'bg-red-600 text-white border-red-600 shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200'
+                      }`}>
+                      ▶️ YouTube
+                    </button>
+                    <button type="button"
+                      onClick={() => { setVideoSource('upload'); setNewVideo({...newVideo, videoUrl: ''}); }}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        videoSource === 'upload' ? 'bg-purple-600 text-white border-purple-600 shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200'
+                      }`}>
+                      ⬆️ {language === 'ar' ? 'رفع فيديو' : 'Upload Video'}
+                    </button>
+                  </div>
+
                   {newVideo.videoUrl ? (
                     <div className="flex items-center justify-between px-4 py-2.5 bg-purple-50 rounded-xl border border-purple-100">
-                      <span className="text-xs font-bold text-purple-700 truncate mr-2">Video Uploaded ✓</span>
+                      <span className="text-xs font-bold text-purple-700 truncate mr-2">
+                        {videoSource === 'youtube' ? '▶️ YouTube Link Set ✓' : 'Video Uploaded ✓'}
+                      </span>
                       <button type="button" onClick={() => setNewVideo({...newVideo, videoUrl: ''})} className="text-xs font-bold text-red-600 hover:underline">Clear</button>
+                    </div>
+                  ) : videoSource === 'youtube' ? (
+                    <div className="space-y-1">
+                      <input
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                        onChange={(e) => {
+                          let url = e.target.value.trim();
+                          // Convert to embed URL automatically
+                          const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                          if (match) url = `https://www.youtube.com/embed/${match[1]}`;
+                          setNewVideo({...newVideo, videoUrl: url});
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                      />
+                      <p className="text-[10px] text-slate-400">
+                        {language === 'ar' ? '💡 الصق رابط اليوتيوب وسيتم تحويله تلقائياً' : '💡 Paste YouTube link — auto-converted to embed URL'}
+                      </p>
                     </div>
                   ) : (
                     <input

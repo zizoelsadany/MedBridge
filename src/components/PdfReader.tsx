@@ -232,7 +232,6 @@ export function PdfReader({ book }: { book: Book }) {
                 className="w-full h-full border-none bg-white"
               />
             </div>
-          </div>
 
           {/* Footer Bar inside page */}
           <div className="flex items-center justify-between pt-6 border-t border-current/15 text-xs font-extrabold opacity-75">

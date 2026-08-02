@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
-export const dynamic = 'force-dynamic';
-
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-const apiKey = process.env.CLOUDINARY_API_KEY;
-const apiSecret = process.env.CLOUDINARY_API_SECRET;
-
 export async function POST(request: Request) {
   try {
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+    const apiKey = process.env.CLOUDINARY_API_KEY;
+    const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
     if (!cloudName || !apiKey || !apiSecret) {
+      const availableCloudVars = Object.keys(process.env).filter(k => k.toLowerCase().includes('cloud'));
       return NextResponse.json({ 
         error: 'Cloudinary credentials not configured on Vercel', 
-        details: { hasCloudName: !!cloudName, hasApiKey: !!apiKey, hasApiSecret: !!apiSecret } 
+        details: { hasCloudName: !!cloudName, hasApiKey: !!apiKey, hasApiSecret: !!apiSecret, availableCloudVars } 
       }, { status: 500 });
     }
 

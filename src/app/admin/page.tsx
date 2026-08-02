@@ -64,6 +64,8 @@ export default function AdminPage() {
   const [showAddBook, setShowAddBook] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  // PDF source mode: 'upload' = Cloudinary, 'drive' = Google Drive URL
+  const [pdfSource, setPdfSource] = useState<'upload' | 'drive'>('upload');
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'cover' | 'video', onComplete: (url: string) => void) => {
     const file = e.target.files?.[0];
@@ -88,53 +90,72 @@ export default function AdminPage() {
 
       const { signature, timestamp, apiKey, cloudName, folder, resourceType } = sigData;
 
-      // Step 2: Upload directly from browser to Cloudinary in 5MB chunks
       const CHUNK_SIZE = 5 * 1024 * 1024; // 5 MB
-      const uniqueUploadId = `mid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
 
       // Generate a safe ascii filename to prevent corruption of Arabic characters (which turn into ? marks in URL)
       const extension = file.name.split('.').pop() || '';
       const safeFileName = `file_${Date.now()}.${extension}`;
 
-      let start = 0;
       let secureUrl = '';
 
-      while (start < file.size) {
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
+      if (file.size <= 10 * 1024 * 1024) {
+        // Simple single-request upload for small files (≤10MB) — avoids 401 errors from chunked headers
+        const form = new FormData();
+        form.append('file', file, safeFileName);
+        form.append('api_key', apiKey);
+        form.append('timestamp', timestamp.toString());
+        form.append('signature', signature);
+        form.append('folder', folder);
 
-        const chunkForm = new FormData();
-        chunkForm.append('file', chunk, safeFileName);
-        chunkForm.append('api_key', apiKey);
-        chunkForm.append('timestamp', timestamp.toString());
-        chunkForm.append('signature', signature);
-        chunkForm.append('folder', folder);
-
-        const chunkRes = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            'X-Unique-Upload-Id': uniqueUploadId,
-            'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
-          },
-          body: chunkForm,
-        });
-
-        // Update real progress
-        const progress = Math.round((end / file.size) * 95);
-        setUploadProgress(progress);
-
-        // Last chunk returns the final Cloudinary response
-        if (end === file.size) {
-          const result = await chunkRes.json();
-          if (result.error) {
-            alert('فشل الرفع على Cloudinary: ' + result.error.message);
-            return;
-          }
-          secureUrl = result.secure_url;
+        setUploadProgress(50);
+        const res = await fetch(uploadUrl, { method: 'POST', body: form });
+        const result = await res.json();
+        if (result.error) {
+          alert('فشل الرفع على Cloudinary: ' + result.error.message);
+          return;
         }
+        secureUrl = result.secure_url;
+        setUploadProgress(95);
+      } else {
+        // Chunked upload for large files (>10MB)
+        const uniqueUploadId = `mid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        let start = 0;
 
-        start = end;
+        while (start < file.size) {
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
+
+          const chunkForm = new FormData();
+          chunkForm.append('file', chunk, safeFileName);
+          chunkForm.append('api_key', apiKey);
+          chunkForm.append('timestamp', timestamp.toString());
+          chunkForm.append('signature', signature);
+          chunkForm.append('folder', folder);
+
+          const chunkRes = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+              'X-Unique-Upload-Id': uniqueUploadId,
+              'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+            },
+            body: chunkForm,
+          });
+
+          const progress = Math.round((end / file.size) * 95);
+          setUploadProgress(progress);
+
+          if (end === file.size) {
+            const result = await chunkRes.json();
+            if (result.error) {
+              alert('فشل الرفع على Cloudinary: ' + result.error.message);
+              return;
+            }
+            secureUrl = result.secure_url;
+          }
+
+          start = end;
+        }
       }
 
       if (secureUrl) {
@@ -600,21 +621,74 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-500">Book PDF File</label>
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-500">
+                    {language === 'ar' ? '📄 ملف PDF' : '📄 Book PDF'}
+                  </label>
+
+                  {/* Toggle between Upload and Drive */}
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      type="button"
+                      onClick={() => { setPdfSource('upload'); setNewBook({...newBook, pdfUrl: ''}); }}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        pdfSource === 'upload'
+                          ? 'bg-brand-600 text-white border-brand-600 shadow-md'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      ⬆️ {language === 'ar' ? 'رفع ملف (حتى 10 ميجا)' : 'Upload File (up to 10MB)'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPdfSource('drive'); setNewBook({...newBook, pdfUrl: ''}); }}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        pdfSource === 'drive'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      🌐 {language === 'ar' ? 'رابط Google Drive (أي حجم)' : 'Google Drive Link (any size)'}
+                    </button>
+                  </div>
+
                   {newBook.pdfUrl ? (
                     <div className="flex items-center justify-between px-4 py-2.5 bg-brand-50 rounded-xl border border-brand-100">
-                      <span className="text-xs font-bold text-brand-700 truncate mr-2">PDF Uploaded ✓</span>
+                      <span className="text-xs font-bold text-brand-700 truncate mr-2">
+                        {pdfSource === 'drive' ? '🌐 Drive Link Set ✓' : 'PDF Uploaded ✓'}
+                      </span>
                       <button type="button" onClick={() => setNewBook({...newBook, pdfUrl: ''})} className="text-xs font-bold text-red-600 hover:underline">Clear</button>
                     </div>
-                  ) : (
+                  ) : pdfSource === 'upload' ? (
                     <input
                       type="file"
                       accept="application/pdf"
                       onChange={(e) => handleFileUpload(e, 'pdf', (url) => setNewBook({...newBook, pdfUrl: url}))}
                       disabled={isUploading}
-                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyanBrand-50 file:text-cyanBrand-700 hover:file:bg-cyanBrand-100"
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
                     />
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="url"
+                        placeholder="https://drive.google.com/file/d/YOUR_FILE_ID/view"
+                        onChange={(e) => {
+                          // Convert Google Drive view link to direct download link
+                          let url = e.target.value.trim();
+                          const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                          if (match) {
+                            url = `https://drive.google.com/file/d/${match[1]}/view?usp=sharing`;
+                          }
+                          setNewBook({...newBook, pdfUrl: url});
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                      />
+                      <p className="text-[10px] text-slate-400">
+                        {language === 'ar'
+                          ? '💡 افتح الملف في Google Drive → مشاركة → الحصول على رابط → انسخ الرابط وضعه هنا'
+                          : '💡 Open file in Google Drive → Share → Get Link → Copy & paste here'}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>

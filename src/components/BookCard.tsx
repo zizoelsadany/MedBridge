@@ -58,13 +58,15 @@ export function BookCard({ book, viewMode = 'grid' }: BookCardProps) {
             <RatingStars rating={book.rating} count={book.ratingCount} size="sm" />
 
             <div className="flex items-center gap-2">
-              <Link
-                href={`/books/${book._id}/read`}
+              <a
+                href={`https://docs.google.com/viewer?url=${encodeURIComponent(book.pdfUrl)}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow transition-all"
               >
                 <BookOpen className="w-4 h-4" />
                 {t('readOnline')}
-              </Link>
+              </a>
               <a
                 href={book.pdfUrl}
                 download
@@ -114,13 +116,15 @@ export function BookCard({ book, viewMode = 'grid' }: BookCardProps) {
       </div>
 
       <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-        <Link
-          href={`/books/${book._id}/read`}
+        <a
+          href={`https://docs.google.com/viewer?url=${encodeURIComponent(book.pdfUrl)}`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow transition-all"
         >
           <BookOpen className="w-4 h-4" />
           {t('readOnline')}
-        </Link>
+        </a>
         <a
           href={book.pdfUrl}
           download

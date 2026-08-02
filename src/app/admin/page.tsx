@@ -82,7 +82,7 @@ export default function AdminPage() {
       });
       const sigData = await sigRes.json();
       if (!sigRes.ok || sigData.error) {
-        alert('فشل الرفع: ' + (sigData.error || 'لم يمكن الحصول على بيانات الرفع'));
+        alert('فشل الرفع: ' + (sigData.error || 'لم يمكن الحصول على بيانات الرفع') + (sigData.details ? '\n' + JSON.stringify(sigData.details) : ''));
         return;
       }
 

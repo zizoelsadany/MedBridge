@@ -8,7 +8,10 @@ export async function POST(request: Request) {
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
-      return NextResponse.json({ error: 'Cloudinary credentials not configured' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Cloudinary credentials not configured', 
+        details: { hasCloudName: !!cloudName, hasApiKey: !!apiKey, hasApiSecret: !!apiSecret } 
+      }, { status: 500 });
     }
 
     const { type } = await request.json();

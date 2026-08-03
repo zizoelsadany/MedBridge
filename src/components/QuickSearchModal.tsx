@@ -218,8 +218,7 @@ export function QuickSearchModal() {
         </div>
 
         {/* Footer hint */}
-        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 font-medium">
-          <span>{language === 'ar' ? 'اكتب "admin" للوصول للوحة التحكم' : 'Type "admin" to access dashboard'}</span>
+        <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end text-[11px] text-slate-400 font-medium">
           <span>ESC {language === 'ar' ? 'للإغلاق' : 'to close'}</span>
         </div>
       </div>

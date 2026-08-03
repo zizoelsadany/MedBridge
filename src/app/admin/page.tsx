@@ -54,7 +54,20 @@ export default function AdminPage() {
   const articles = globalArticles;
   const setArticles = setGlobalArticles;
 
-  const [videos, setVideos] = useState<MedicalVideo[]>(initialVideos);
+  const [videos, setVideos] = useState<MedicalVideo[]>([]);
+  const [videosLoading, setVideosLoading] = useState(false);
+
+  // Fetch videos from MongoDB when the videos tab is opened
+  useEffect(() => {
+    if (activeTab === 'videos') {
+      setVideosLoading(true);
+      fetch('/api/videos')
+        .then(res => res.json())
+        .then(data => { if (Array.isArray(data)) setVideos(data); })
+        .catch(err => console.error('Failed to fetch videos:', err))
+        .finally(() => setVideosLoading(false));
+    }
+  }, [activeTab]);
 
   // Dynamic Real Statistics Calculations
   const totalDownloads = books.reduce((sum, b) => sum + (b.downloads || 0), 0);
@@ -266,6 +279,7 @@ export default function AdminPage() {
   };
 
   const [showAddArticle, setShowAddArticle] = useState(false);
+  const [articleImageSource, setArticleImageSource] = useState<'url' | 'upload'>('url');
   const emptyArticle = {
     title: '',
     author: '',
@@ -325,25 +339,46 @@ export default function AdminPage() {
     }
   };
 
-  const handleAddArticle = (e: React.FormEvent) => {
+  const handleAddArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newArticle.coverImage) {
-      alert('⚠️ يرجى إرفاق رابط صورة للمقال.');
+      alert('⚠️ يرجى إرفاق صورة للمقال (من الجهاز أو رابط).');
       return;
     }
-    const created: Article = {
-      ...newArticle,
-      _id: `article-${Date.now()}`,
-      views: 1,
-      rating: 5.0,
-      ratingCount: 1,
-      createdAt: new Date().toISOString(),
-    };
-    setArticles([created, ...articles]);
-    setShowAddArticle(false);
-    setNewArticle(emptyArticle);
-    alert('✅ تم إضافة المقال بنجاح!');
+    try {
+      const res = await fetch('/api/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newArticle, views: 1, rating: 5.0, ratingCount: 1 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setArticles([data, ...articles]);
+        setShowAddArticle(false);
+        setNewArticle(emptyArticle);
+        setArticleImageSource('url');
+        alert('✅ تم إضافة المقال في قاعدة البيانات بنجاح!');
+      } else {
+        // Fallback: save locally if DB not connected
+        const created: Article = {
+          ...newArticle,
+          _id: `article-${Date.now()}`,
+          views: 1,
+          rating: 5.0,
+          ratingCount: 1,
+          createdAt: new Date().toISOString(),
+        };
+        setArticles([created, ...articles]);
+        setShowAddArticle(false);
+        setNewArticle(emptyArticle);
+        setArticleImageSource('url');
+        alert('⚠️ تم الحفظ محلياً فقط (قاعدة البيانات غير متصلة)');
+      }
+    } catch (err) {
+      alert('❌ خطأ في الاتصال بقاعدة البيانات: ' + err);
+    }
   };
+
 
   // Delete Book — removes from MongoDB via API
   const handleDeleteBook = async (id: string) => {
@@ -355,14 +390,24 @@ export default function AdminPage() {
     }
   };
 
-  // Delete Article
-  const handleDeleteArticle = (id: string) => {
+  // Delete Article — removes from MongoDB via API
+  const handleDeleteArticle = async (id: string) => {
     setArticles(articles.filter(a => a._id !== id));
+    try {
+      await fetch(`/api/articles/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Delete article from DB failed:', err);
+    }
   };
 
-  // Delete Video
-  const handleDeleteVideo = (id: string) => {
+  // Delete Video — removes from MongoDB via API
+  const handleDeleteVideo = async (id: string) => {
     setVideos(videos.filter(v => v._id !== id));
+    try {
+      await fetch(`/api/videos/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Delete video from DB failed:', err);
+    }
   };
 
   if (!mounted) return null;
@@ -835,14 +880,51 @@ export default function AdminPage() {
                   className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
                   min={1}
                 />
-                <input
-                  type="url"
-                  placeholder={language === 'ar' ? 'رابط صورة الغلاف (مباشر)' : 'Cover Image URL'}
-                  value={newArticle.coverImage}
-                  onChange={(e) => setNewArticle({ ...newArticle, coverImage: e.target.value })}
-                  className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium col-span-1 md:col-span-2"
-                  required
-                />
+                <div className="flex flex-col gap-2 col-span-1 md:col-span-2">
+                  <label className="text-xs font-bold text-slate-500">
+                    {language === 'ar' ? '🖼️ صورة الغلاف' : '🖼️ Cover Image'}
+                  </label>
+                  {/* Toggle upload vs URL */}
+                  <div className="flex gap-2 mb-1">
+                    <button type="button"
+                      onClick={() => { setArticleImageSource('upload'); setNewArticle({...newArticle, coverImage: ''}); }}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        articleImageSource === 'upload' ? 'bg-cyanBrand-600 text-white border-cyanBrand-600 shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200'
+                      }`}>
+                      ⬆️ {language === 'ar' ? 'رفع من الجهاز' : 'Upload from Device'}
+                    </button>
+                    <button type="button"
+                      onClick={() => { setArticleImageSource('url'); setNewArticle({...newArticle, coverImage: ''}); }}
+                      className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        articleImageSource === 'url' ? 'bg-cyanBrand-600 text-white border-cyanBrand-600 shadow-md' : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200'
+                      }`}>
+                      🔗 {language === 'ar' ? 'رابط مباشر' : 'Direct URL'}
+                    </button>
+                  </div>
+
+                  {newArticle.coverImage ? (
+                    <div className="relative w-full h-24 bg-slate-100 rounded-xl overflow-hidden border">
+                      <img src={newArticle.coverImage} alt="Cover" className="object-cover w-full h-full opacity-60" />
+                      <button type="button" onClick={() => setNewArticle({...newArticle, coverImage: ''})} className="absolute inset-0 flex items-center justify-center text-xs font-bold text-red-600 hover:bg-red-50/50">Remove</button>
+                    </div>
+                  ) : articleImageSource === 'upload' ? (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'cover', (url) => setNewArticle({...newArticle, coverImage: url}))}
+                      disabled={isUploading}
+                      className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyanBrand-50 file:text-cyanBrand-700 hover:file:bg-cyanBrand-100"
+                    />
+                  ) : (
+                    <input
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value={newArticle.coverImage}
+                      onChange={(e) => setNewArticle({ ...newArticle, coverImage: e.target.value })}
+                      className="px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-medium"
+                    />
+                  )}
+                </div>
                 <textarea
                   placeholder={language === 'ar' ? 'ملخص المقال' : 'Summary'}
                   value={newArticle.summary}
@@ -885,7 +967,7 @@ export default function AdminPage() {
                     <td className="p-4 font-semibold">{art.category}</td>
                     <td className="p-4 font-mono">{art.readTimeMinutes} min</td>
                     <td className="p-4">
-                      <button onClick={() => setArticles(articles.filter(a => a._id !== art._id))} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl">
+                      <button onClick={() => handleDeleteArticle(art._id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -1018,20 +1100,31 @@ export default function AdminPage() {
               </button>
             </form>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {videos.map(v => (
-              <div key={v._id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 space-y-3">
-                <img src={v.thumbnail} alt={v.title} className="w-full h-36 object-cover rounded-2xl" />
-                <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{v.title}</h4>
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-xs text-slate-500">{v.duration}</span>
-                  <button onClick={() => setVideos(videos.filter(item => item._id !== v._id))} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+          {videosLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : videos.length === 0 ? (
+            <div className="text-center py-16 text-slate-400 dark:text-slate-600">
+              <Video className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm font-semibold">{language === 'ar' ? 'لا توجد فيديوهات بعد' : 'No videos yet'}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videos.map(v => (
+                <div key={v._id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 space-y-3">
+                  <img src={v.thumbnail} alt={v.title} className="w-full h-36 object-cover rounded-2xl" />
+                  <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{v.title}</h4>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <span className="text-xs text-slate-500">{v.duration}</span>
+                    <button onClick={() => handleDeleteVideo(v._id)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -1,21 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { initialArticles, initialCategories } from '@/lib/mockData';
+import { initialCategories } from '@/lib/mockData';
 import { ArticleCard } from '@/components/ArticleCard';
-import { FileText, Search, Filter } from 'lucide-react';
+import { FileText, Search, Loader2 } from 'lucide-react';
+import { Article } from '@/lib/types';
 
 export default function ArticlesPage() {
   const { t, language } = useApp();
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = initialArticles.filter(art => {
-    const matchCat = selectedCat === 'all' || art.category.toLowerCase() === selectedCat.toLowerCase();
-    const matchSearch = !search.trim() || art.title.toLowerCase().includes(search.toLowerCase()) || art.summary.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  useEffect(() => {
+    const fetchArticles = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (selectedCat !== 'all') params.set('category', selectedCat);
+        if (search.trim()) params.set('search', search.trim());
+
+        const res = await fetch(`/api/articles?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          setArticles(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch articles:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(fetchArticles, 300);
+    return () => clearTimeout(timer);
+  }, [search, selectedCat]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -55,11 +76,24 @@ export default function ArticlesPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {filtered.map(article => (
-          <ArticleCard key={article._id} article={article} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-cyanBrand-500 animate-spin" />
+        </div>
+      ) : articles.length === 0 ? (
+        <div className="text-center py-20 text-slate-400 dark:text-slate-600">
+          <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-sm font-semibold">
+            {language === 'ar' ? 'لا توجد مقالات حتى الآن' : 'No articles found'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {articles.map(article => (
+            <ArticleCard key={article._id} article={article} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

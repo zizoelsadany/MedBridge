@@ -1,24 +1,76 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { initialArticles } from '@/lib/mockData';
 import { useApp } from '@/context/AppContext';
 import { CommentSection } from '@/components/CommentSection';
 import { RatingStars } from '@/components/RatingStars';
 import { ArticleCard } from '@/components/ArticleCard';
-import { Clock, Eye, Bookmark, Share2, ArrowRight, ArrowLeft, User, Tag } from 'lucide-react';
+import { Clock, Eye, Bookmark, Share2, ArrowRight, ArrowLeft, User, Tag, Loader2, AlertTriangle } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { Article } from '@/lib/types';
 
 export default function ArticleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t, language, favArticleIds, toggleFavArticle, userRatings, rateItem, readingSettings } = useApp();
 
-  const article = initialArticles.find(a => a._id === id) || initialArticles[0];
+  const [article, setArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [related, setRelated] = useState<Article[]>([]);
+
+  useEffect(() => {
+    const fetchArticle = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/articles/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setArticle(data);
+          
+          // Fetch related articles (just getting all and taking 2)
+          const relatedRes = await fetch('/api/articles');
+          if (relatedRes.ok) {
+            const allArticles = await relatedRes.json();
+            setRelated(allArticles.filter((a: Article) => a._id !== id).slice(0, 2));
+          } else {
+            setRelated(initialArticles.filter(a => a._id !== id).slice(0, 2));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch article:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArticle();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-10 h-10 text-cyanBrand-500 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <AlertTriangle className="w-12 h-12 text-rose-500" />
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          {language === 'ar' ? 'المقال غير موجود' : 'Article Not Found'}
+        </h2>
+        <Link href="/articles" className="px-6 py-2 bg-cyanBrand-600 text-white rounded-xl font-bold">
+          {t('backToArticles')}
+        </Link>
+      </div>
+    );
+  }
+
   const isFav = favArticleIds.includes(article._id);
   const ratingVal = userRatings[article._id] || article.rating;
 
-  const related = initialArticles.filter(a => a._id !== article._id).slice(0, 2);
   const ArrowBackIcon = language === 'ar' ? ArrowRight : ArrowLeft;
 
   const fontClasses = {
@@ -81,7 +133,7 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
               )}
               <div>
                 <span className="font-bold text-slate-900 dark:text-white block text-sm">{article.author}</span>
-                <span>{article.authorTitle} • {formatDate(article.createdAt, language)}</span>
+                <span>{article.authorTitle || 'Author'} • {formatDate(article.createdAt, language)}</span>
               </div>
             </div>
 
@@ -95,18 +147,18 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        <div className="w-full h-80 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md">
-          <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover" />
-        </div>
+        {article.coverImage && (
+          <div className="w-full h-80 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md">
+            <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover" />
+          </div>
+        )}
 
         {/* Article Body */}
         <div className={`prose dark:prose-invert max-w-none ${fontClasses} ${sizeClasses} ${leadingClasses} text-slate-800 dark:text-slate-200 space-y-6`}>
           <p className="font-semibold text-lg text-brand-600 dark:text-brand-400 border-l-4 border-brand-500 pl-4 py-1">
             {article.summary}
           </p>
-          <div className="whitespace-pre-line leading-relaxed">
-            {article.content}
-          </div>
+          <div className="whitespace-pre-line leading-relaxed" dangerouslySetInnerHTML={{ __html: article.content }} />
         </div>
 
         {/* Article Tags */}

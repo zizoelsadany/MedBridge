@@ -289,22 +289,40 @@ export default function AdminPage() {
   };
   const [newVideo, setNewVideo] = useState(emptyVideo);
 
-  const handleAddVideo = (e: React.FormEvent) => {
+  const handleAddVideo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newVideo.videoUrl || !newVideo.thumbnail) {
       alert('⚠️ يرجى إرفاق رابط الفيديو والصورة المصغرة.');
       return;
     }
-    const created: MedicalVideo = {
-      ...newVideo,
-      _id: `video-${Date.now()}`,
-      views: 1,
-      createdAt: new Date().toISOString(),
-    };
-    setVideos([created, ...videos]);
-    setShowAddVideo(false);
-    setNewVideo(emptyVideo);
-    alert('✅ تم إضافة الفيديو بنجاح!');
+    try {
+      const res = await fetch('/api/videos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newVideo, views: 1 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVideos([data, ...videos]);
+        setShowAddVideo(false);
+        setNewVideo(emptyVideo);
+        alert('✅ تم إضافة الفيديو في قاعدة البيانات بنجاح!');
+      } else {
+        // Fallback: save locally if DB not connected
+        const created: MedicalVideo = {
+          ...newVideo,
+          _id: `video-${Date.now()}`,
+          views: 1,
+          createdAt: new Date().toISOString(),
+        };
+        setVideos([created, ...videos]);
+        setShowAddVideo(false);
+        setNewVideo(emptyVideo);
+        alert('⚠️ تم الحفظ محلياً فقط (قاعدة البيانات غير متصلة)');
+      }
+    } catch (err) {
+      alert('❌ خطأ في الاتصال بقاعدة البيانات: ' + err);
+    }
   };
 
   const handleAddArticle = (e: React.FormEvent) => {

@@ -1,21 +1,43 @@
 'use client';
 
-import React, { useState } from 'react';
-import { initialVideos, initialCategories } from '@/lib/mockData';
+import React, { useState, useEffect } from 'react';
+import { initialCategories } from '@/lib/mockData';
 import { VideoCard } from '@/components/VideoCard';
 import { useApp } from '@/context/AppContext';
-import { Video, Search } from 'lucide-react';
+import { Video, Search, Loader2 } from 'lucide-react';
+import { MedicalVideo } from '@/lib/types';
 
 export default function VideosPage() {
   const { t, language } = useApp();
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('all');
+  const [videos, setVideos] = useState<MedicalVideo[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = initialVideos.filter(v => {
-    const matchCat = selectedCat === 'all' || v.category.toLowerCase() === selectedCat.toLowerCase();
-    const matchSearch = !search.trim() || v.title.toLowerCase().includes(search.toLowerCase()) || v.description.toLowerCase().includes(search.toLowerCase());
-    return matchCat && matchSearch;
-  });
+  useEffect(() => {
+    const fetchVideos = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (selectedCat !== 'all') params.set('category', selectedCat);
+        if (search.trim()) params.set('search', search.trim());
+
+        const res = await fetch(`/api/videos?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          setVideos(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch videos:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce search
+    const timer = setTimeout(fetchVideos, 300);
+    return () => clearTimeout(timer);
+  }, [search, selectedCat]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -55,11 +77,24 @@ export default function VideosPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {filtered.map(video => (
-          <VideoCard key={video._id} video={video} />
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+        </div>
+      ) : videos.length === 0 ? (
+        <div className="text-center py-20 text-slate-400 dark:text-slate-600">
+          <Video className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p className="text-sm font-semibold">
+            {language === 'ar' ? 'لا توجد فيديوهات حتى الآن' : 'No videos found'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {videos.map(video => (
+            <VideoCard key={video._id} video={video} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

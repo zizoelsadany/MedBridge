@@ -4,12 +4,13 @@ import ArticleModel from '@/models/Article';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const db = await connectToDatabase();
+    const { id } = await params;
     if (db) {
-      await ArticleModel.findByIdAndDelete(params.id);
+      await ArticleModel.findByIdAndDelete(id);
       return NextResponse.json({ success: true });
     }
     return NextResponse.json({ success: true });
